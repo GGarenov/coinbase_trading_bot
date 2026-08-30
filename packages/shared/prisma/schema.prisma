@@ -1,0 +1,171 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+enum SessionMode {
+  BACKTEST
+  PAPER
+  LIVE
+}
+
+enum SessionStatus {
+  PENDING
+  RUNNING
+  PAUSED
+  STOPPED
+  COMPLETED
+  FAILED
+}
+
+enum OrderSide {
+  BUY
+  SELL
+}
+
+enum OrderType {
+  LIMIT
+  MARKET
+  STOP_LIMIT
+}
+
+enum OrderStatus {
+  OPEN
+  PARTIALLY_FILLED
+  FILLED
+  CANCELLED
+  EXPIRED
+}
+
+enum Liquidity {
+  MAKER
+  TAKER
+}
+
+model Strategy {
+  id            Int              @id @default(autoincrement())
+  slug          String           @unique
+  name          String
+  description   String
+  riskLevel     String
+  defaultParams Json
+  configs       StrategyConfig[]
+}
+
+model StrategyConfig {
+  id         Int      @id @default(autoincrement())
+  strategyId Int
+  strategy   Strategy @relation(fields: [strategyId], references: [id])
+  name       String
+  params     Json // validated by the strategy's own zod schema
+  createdAt  DateTime @default(now())
+  sessions   Session[]
+}
+
+model Session {
+  id                  Int            @id @default(autoincrement())
+  mode                SessionMode
+  status              SessionStatus  @default(PENDING)
+  strategyConfigId    Int
+  strategyConfig      StrategyConfig @relation(fields: [strategyConfigId], references: [id])
+  productId           String // e.g. "SOL-USDC"
+  initialQuoteBalance Decimal
+  initialBaseBalance  Decimal
+  feeSchedule         Json // {makerRate, takerRate} snapshotted at creation
+  startDate           DateTime? // backtest window start
+  endDate             DateTime? // backtest window end
+  startedAt           DateTime?
+  stoppedAt           DateTime?
+  strategyState       Json? // pure-strategy snapshot, enables resume-after-crash
+  resultsSummary      Json? // cached metrics once completed
+  error               String?
+  createdAt           DateTime       @default(now())
+  updatedAt           DateTime       @updatedAt
+  orders              Order[]
+  trades              Trade[]
+  balances            Balance[]
+  missedFills         MissedFill[]
+}
+
+model Order {
+  id              Int         @id @default(autoincrement())
+  sessionId       Int
+  session         Session     @relation(fields: [sessionId], references: [id])
+  side            OrderSide
+  type            OrderType
+  price           Decimal?
+  stopPrice       Decimal?
+  size            Decimal
+  status          OrderStatus @default(OPEN)
+  exchangeOrderId String? // null for backtest/paper
+  levelPrice      Decimal? // which configured grid level this order belongs to
+  createdAt       DateTime    @default(now())
+  filledAt        DateTime?
+  fills           Fill[]
+}
+
+model Fill {
+  id        Int       @id @default(autoincrement())
+  orderId   Int
+  order     Order     @relation(fields: [orderId], references: [id])
+  price     Decimal
+  size      Decimal
+  fee       Decimal
+  feeRate   Decimal
+  liquidity Liquidity
+  timestamp DateTime
+}
+
+// One completed round-trip (buy+sell)
+model Trade {
+  id         Int      @id @default(autoincrement())
+  sessionId  Int
+  session    Session  @relation(fields: [sessionId], references: [id])
+  buyFillId  Int
+  sellFillId Int
+  costBasis  Decimal
+  proceeds   Decimal
+  feesTotal  Decimal
+  pnl        Decimal
+  openedAt   DateTime
+  closedAt   DateTime
+}
+
+// Equity curve / daily P&L points
+model Balance {
+  id           Int      @id @default(autoincrement())
+  sessionId    Int
+  session      Session  @relation(fields: [sessionId], references: [id])
+  timestamp    DateTime
+  quoteBalance Decimal
+  baseBalance  Decimal
+  equity       Decimal // quoteBalance + baseBalance * price at that time
+}
+
+model MissedFill {
+  id         Int       @id @default(autoincrement())
+  sessionId  Int
+  session    Session   @relation(fields: [sessionId], references: [id])
+  levelPrice Decimal
+  side       OrderSide
+  reason     String // "price gapped past level" | "fallback timeout, no market order configured" | ...
+  occurredAt DateTime
+}
+
+// Avoids re-fetching Coinbase history on every backtest re-run
+model PriceCandleCache {
+  id          Int      @id @default(autoincrement())
+  productId   String
+  granularity String
+  openTime    DateTime
+  open        Decimal
+  high        Decimal
+  low         Decimal
+  close       Decimal
+  volume      Decimal
+
+  @@unique([productId, granularity, openTime])
+}
