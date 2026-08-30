@@ -10,7 +10,8 @@
  * than depending on the live price actually crossing a grid level or an
  * indicator condition within the test's short run time.
  */
-import { DEFAULT_FEE_SCHEDULE, prisma } from "@coinbase-trading-bot/shared";
+import { prisma } from "@coinbase-trading-bot/shared";
+import { createSession } from "../src/services/sessionFactory";
 import { getRunningSessionIds, priceStream, startSession, stopSession } from "../src/services/sessionManager";
 
 const RUN_MS = 10_000;
@@ -32,15 +33,12 @@ async function main() {
     },
   });
 
-  const session = await prisma.session.create({
-    data: {
-      mode: "PAPER",
-      strategyConfigId: strategyConfig.id,
-      productId: PRODUCT_ID,
-      initialQuoteBalance: 1000,
-      initialBaseBalance: 0,
-      feeSchedule: DEFAULT_FEE_SCHEDULE,
-    },
+  const session = await createSession({
+    mode: "PAPER",
+    strategyConfigId: strategyConfig.id,
+    productId: PRODUCT_ID,
+    initialQuoteBalance: 1000,
+    initialBaseBalance: 0,
   });
 
   console.log(`Created session ${session.id} (PAPER, dca, ${PRODUCT_ID}). Starting...`);

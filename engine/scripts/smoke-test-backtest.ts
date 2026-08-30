@@ -10,8 +10,9 @@
  * (multiple times, over a 3-day window) regardless of what the actual
  * price did.
  */
-import { DEFAULT_FEE_SCHEDULE, prisma } from "@coinbase-trading-bot/shared";
+import { prisma } from "@coinbase-trading-bot/shared";
 import { runBacktest } from "../src/services/backtestRunner";
+import { createSession } from "../src/services/sessionFactory";
 
 const PRODUCT_ID = "SOL-USDC";
 const THREE_DAYS_MS = 3 * 24 * 60 * 60 * 1000;
@@ -35,17 +36,14 @@ async function main() {
   const endDate = new Date();
   const startDate = new Date(endDate.getTime() - THREE_DAYS_MS);
 
-  const session = await prisma.session.create({
-    data: {
-      mode: "BACKTEST",
-      strategyConfigId: strategyConfig.id,
-      productId: PRODUCT_ID,
-      initialQuoteBalance: 1000,
-      initialBaseBalance: 0,
-      feeSchedule: DEFAULT_FEE_SCHEDULE,
-      startDate,
-      endDate,
-    },
+  const session = await createSession({
+    mode: "BACKTEST",
+    strategyConfigId: strategyConfig.id,
+    productId: PRODUCT_ID,
+    initialQuoteBalance: 1000,
+    initialBaseBalance: 0,
+    startDate,
+    endDate,
   });
 
   console.log(`Created backtest session ${session.id} over ${startDate.toISOString()} .. ${endDate.toISOString()}. Running...`);
