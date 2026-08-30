@@ -18,6 +18,7 @@ const strategies = [
         { price: 105, side: "SELL" },
         { price: 110, side: "SELL" },
       ],
+      amountPerLevel: 25,
       stopLimitBufferPct: 0.5,
       marketFallback: { enabled: false, timeoutSeconds: 300 },
     },
@@ -33,6 +34,7 @@ const strategies = [
       fastPeriod: 9,
       slowPeriod: 21,
       granularity: "ONE_HOUR",
+      amountPerEntry: 25,
     },
   },
   {
@@ -44,7 +46,8 @@ const strategies = [
     defaultParams: {
       productId: "SOL-USDC",
       amountPerBuy: 25,
-      intervalHours: 24,
+      interval: "daily",
+      durationDays: 90,
     },
   },
   {
