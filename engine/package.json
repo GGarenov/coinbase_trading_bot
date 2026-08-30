@@ -9,6 +9,7 @@
   },
   "dependencies": {
     "@coinbase-trading-bot/shared": "workspace:*",
+    "@prisma/client": "^7.10.0",
     "jsonwebtoken": "^9.0.3",
     "zod": "^4.5.2"
   },
