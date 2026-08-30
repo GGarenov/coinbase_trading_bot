@@ -38,6 +38,10 @@ enum OrderStatus {
   FILLED
   CANCELLED
   EXPIRED
+  // Never sent to the exchange at all — blocked by a live-trading safety check
+  // (LIVE_TRADING_ENABLED unset, the global kill switch, or a spend/position cap).
+  // See services/liveSafetyGuard.ts. Order.rejectionReason carries why.
+  REJECTED
 }
 
 enum Liquidity {
@@ -77,6 +81,10 @@ model Session {
   feeSchedule         Json // {makerRate, takerRate} snapshotted at creation
   startDate           DateTime? // backtest window start
   endDate             DateTime? // backtest window end
+  // Live-Trading Safety Rails: null = no cap. Enforced in services/liveSafetyGuard.ts, checked
+  // only for LIVE-mode BUY decisions (a cap on growing exposure, not on reducing it via a sell).
+  maxSpendPerOrder    Decimal? // quote currency; a single BUY decision above this is rejected
+  maxPositionSize     Decimal? // base currency; a BUY that would push baseBalance above this is rejected
   startedAt           DateTime?
   stoppedAt           DateTime?
   strategyState       Json? // pure-strategy snapshot, enables resume-after-crash
@@ -98,10 +106,11 @@ model Order {
   type            OrderType
   price           Decimal?
   stopPrice       Decimal?
-  size            Decimal
+  size            Decimal? // null for a REJECTED order — it was never sized/priced against the exchange
   status          OrderStatus @default(OPEN)
   exchangeOrderId String? // null for backtest/paper
   levelPrice      Decimal? // which configured grid level this order belongs to
+  rejectionReason String? // set only when status is REJECTED — see OrderStatus.REJECTED
   createdAt       DateTime    @default(now())
   filledAt        DateTime?
   fills           Fill[]
@@ -153,6 +162,15 @@ model MissedFill {
   side       OrderSide
   reason     String // "price gapped past level" | "fallback timeout, no market order configured" | ...
   occurredAt DateTime
+}
+
+// A single-row settings table (id is always 1) — currently just the global live-trading kill
+// switch. A DB flag rather than an env var deliberately: an env var is fixed when the engine
+// process starts, so it can't be flipped to halt an already-running LIVE session without a
+// restart; this can. Checked every tick for LIVE sessions in services/liveSafetyGuard.ts.
+model SystemSetting {
+  id                    Int     @id @default(1)
+  liveTradingKillSwitch Boolean @default(false)
 }
 
 // Avoids re-fetching Coinbase history on every backtest re-run

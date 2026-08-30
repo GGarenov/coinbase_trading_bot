@@ -56,6 +56,9 @@ export async function runBacktest(sessionId: number): Promise<void> {
     feeSchedule,
     productInfo: null,
     portfolio,
+    // Live-Trading Safety Rails caps are LIVE-mode only; unused here, so null (no cap either way).
+    maxSpendPerOrder: null,
+    maxPositionSize: null,
   };
 
   for (const candle of candles) {

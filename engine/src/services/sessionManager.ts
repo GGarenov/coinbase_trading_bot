@@ -10,6 +10,7 @@ import { executeOrder } from "../exchange/coinbase/orderExecutor";
 import type { ProductInfo } from "../exchange/coinbase/rest";
 import { fetchProductInfo } from "../exchange/coinbase/rest";
 import { PriceStream } from "../exchange/coinbase/stream";
+import { checkLiveSafety } from "./liveSafetyGuard";
 import { recordMissedFill } from "./missedFillTracker";
 import { applyFillToPortfolio, type OrderDecision, simulateFill } from "./simulation";
 
@@ -42,6 +43,9 @@ export interface DecisionProcessingContext {
   productInfo: ProductInfo | null;
   /** Mutated in place by `processDecisions` as fills are applied. */
   portfolio: PortfolioState;
+  /** Live-Trading Safety Rails — only enforced when `mode === "LIVE"`; null = no cap. See `liveSafetyGuard.ts`. */
+  maxSpendPerOrder: number | null;
+  maxPositionSize: number | null;
 }
 
 interface RunningSession extends DecisionProcessingContext {
@@ -83,6 +87,7 @@ async function resolveFill(ctx: DecisionProcessingContext, decision: OrderDecisi
  */
 export async function processDecisions(ctx: DecisionProcessingContext, decisions: TradeDecision[], point: PricePoint): Promise<void> {
   const resolved: Array<{ decision: OrderDecision; fill: ResolvedFill }> = [];
+  const rejected: Array<{ decision: OrderDecision; reason: string }> = [];
   const missed: Array<Extract<TradeDecision, { kind: "MISSED_FILL" }>> = [];
 
   for (const decision of decisions) {
@@ -90,12 +95,45 @@ export async function processDecisions(ctx: DecisionProcessingContext, decisions
       missed.push(decision);
       continue;
     }
+    if (ctx.mode === "LIVE") {
+      const safety = await checkLiveSafety(
+        decision,
+        ctx.portfolio,
+        { maxSpendPerOrder: ctx.maxSpendPerOrder, maxPositionSize: ctx.maxPositionSize },
+        point.price,
+      );
+      if (!safety.allowed) {
+        // No fill, no portfolio change — that's the entire point of the safety check. Still
+        // persisted below (as a REJECTED Order) so a full audit trail exists even for decisions
+        // that never reached the exchange.
+        rejected.push({ decision, reason: safety.reason });
+        continue;
+      }
+    }
     const fill = await resolveFill(ctx, decision, point);
     ctx.portfolio = applyFillToPortfolio(ctx.portfolio, decision.side, fill);
     resolved.push({ decision, fill });
   }
 
   await prisma.$transaction(async (tx) => {
+    for (const { decision, reason } of rejected) {
+      await tx.order.create({
+        data: {
+          sessionId: ctx.sessionId,
+          side: decision.side,
+          type: decision.orderType,
+          // Best-effort/informational only — this order was never priced or sized against the
+          // exchange, since it never got there. `size` stays null for a BUY (only quoteAmount is
+          // known); a SELL's `quantity` is known exactly, so it's recorded.
+          price: decision.levelPrice ?? null,
+          size: decision.side === "SELL" ? decision.quantity : null,
+          status: "REJECTED",
+          rejectionReason: reason,
+          levelPrice: decision.levelPrice ?? null,
+        },
+      });
+    }
+
     for (const { decision, fill } of resolved) {
       const order = await tx.order.create({
         data: {
@@ -266,6 +304,8 @@ export async function startSession(sessionId: number): Promise<void> {
     feeSchedule,
     productInfo,
     portfolio,
+    maxSpendPerOrder: session.maxSpendPerOrder !== null ? Number(session.maxSpendPerOrder) : null,
+    maxPositionSize: session.maxPositionSize !== null ? Number(session.maxPositionSize) : null,
     processing: false,
     unsubscribe: () => {},
   };

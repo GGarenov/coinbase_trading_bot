@@ -1,5 +1,6 @@
 import type { OrderTypeHint, TradeDecision } from "@coinbase-trading-bot/shared";
 import { classifyLiquidity, type FeeSchedule, type Liquidity, resolveFeeRate } from "@coinbase-trading-bot/shared";
+import { isKillSwitchEngaged } from "../../services/killSwitch";
 import type { ProductInfo } from "./rest";
 import { getTradingClient } from "./tradingClient";
 
@@ -52,6 +53,19 @@ export async function executeOrder(
   productInfo: ProductInfo,
   feeSchedule: FeeSchedule,
 ): Promise<LiveFill> {
+  // Defense in depth: sessionManager.ts's liveSafetyGuard.ts already checks both of these before
+  // ever calling executeOrder(), so this should never actually trigger in normal operation — it's
+  // here so this function, which is the one thing in this codebase that can place a real order,
+  // never trusts a caller to have checked first. Session-specific caps (max spend/position) are
+  // NOT re-checked here, since this function has no session context — that's liveSafetyGuard.ts's
+  // job, one layer up.
+  if (process.env.LIVE_TRADING_ENABLED !== "true") {
+    throw new Error('executeOrder blocked: LIVE_TRADING_ENABLED is not set to "true" on this process');
+  }
+  if (await isKillSwitchEngaged()) {
+    throw new Error("executeOrder blocked: the global kill switch is engaged");
+  }
+
   const client = getTradingClient();
   if (!client) {
     throw new Error("executeOrder called with no CDP credentials configured — this path is live-trading only");

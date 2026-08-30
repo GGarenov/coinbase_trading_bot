@@ -2,5 +2,15 @@
   "name": "coinbase-trading-bot",
   "version": "0.0.1",
   "private": true,
-  "packageManager": "pnpm@11.24.0"
+  "packageManager": "pnpm@11.24.0",
+  "scripts": {
+    "pm2:start": "pm2 start ecosystem.config.js",
+    "pm2:stop": "pm2 stop ecosystem.config.js",
+    "pm2:restart": "pm2 restart ecosystem.config.js",
+    "pm2:logs": "pm2 logs coinbase-trading-bot-engine",
+    "pm2:save": "pm2 save"
+  },
+  "devDependencies": {
+    "pm2": "^7.0.4"
+  }
 }

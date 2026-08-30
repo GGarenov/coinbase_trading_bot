@@ -18,6 +18,14 @@ export interface CreateSessionParams {
    * assumes. Defaults to `DEFAULT_FEE_SCHEDULE` when omitted.
    */
   feeScheduleOverride?: FeeSchedule;
+  /**
+   * Live-Trading Safety Rails: caps enforced by `liveSafetyGuard.ts`, only
+   * for `mode: "LIVE"` sessions. Omitted/undefined = no cap. Strongly
+   * recommended to set both before ever creating a LIVE session — there is
+   * no other place in this codebase that limits real spend or position size.
+   */
+  maxSpendPerOrder?: number;
+  maxPositionSize?: number;
 }
 
 /**
@@ -46,6 +54,8 @@ export async function createSession(params: CreateSessionParams) {
       feeSchedule: (params.feeScheduleOverride ?? DEFAULT_FEE_SCHEDULE) as any,
       startDate: params.startDate,
       endDate: params.endDate,
+      maxSpendPerOrder: params.maxSpendPerOrder,
+      maxPositionSize: params.maxPositionSize,
     },
   });
 }
