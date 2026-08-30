@@ -1,0 +1,21 @@
+{
+  "name": "@coinbase-trading-bot/engine",
+  "version": "0.0.1",
+  "private": true,
+  "type": "commonjs",
+  "main": "src/index.ts",
+  "scripts": {
+    "dev": "tsx watch src/index.ts"
+  },
+  "dependencies": {
+    "@coinbase-trading-bot/shared": "workspace:*",
+    "jsonwebtoken": "^9.0.3",
+    "zod": "^4.5.2"
+  },
+  "devDependencies": {
+    "@types/jsonwebtoken": "^9.0.10",
+    "@types/node": "^26.4.0",
+    "tsx": "^4.23.12",
+    "typescript": "^7.0.2"
+  }
+}
