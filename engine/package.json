@@ -10,10 +10,12 @@
   "dependencies": {
     "@coinbase-trading-bot/shared": "workspace:*",
     "@prisma/client": "^7.10.0",
+    "express": "^5.1.0",
     "jsonwebtoken": "^9.0.3",
     "zod": "^4.5.2"
   },
   "devDependencies": {
+    "@types/express": "^5.0.3",
     "@types/jsonwebtoken": "^9.0.10",
     "@types/node": "^26.4.0",
     "tsx": "^4.23.12",
