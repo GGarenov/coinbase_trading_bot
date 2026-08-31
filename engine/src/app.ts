@@ -1,12 +1,16 @@
 import express, { type Express } from "express";
 import { backtestsRouter } from "./routes/backtests";
+import { sessionsRouter } from "./routes/sessions";
+import { strategiesRouter } from "./routes/strategies";
 import { getRunningSessionIds } from "./services/sessionManager";
 
 /**
- * The engine's HTTP API — `/backtests` (Backtesting section) plus `/health`
- * (Continuous Operation section, this pass). Other route groups from
- * PLAN.md (`strategies`, `configs`, `sessions`, `market`) don't exist yet;
- * they belong to whichever future section actually needs them.
+ * The engine's HTTP API — `/backtests` (Backtesting section), `/health`
+ * (Continuous Operation section), and `/strategies` + `/sessions` (HTTP
+ * API — Strategy & Session Routes section, added to unblock
+ * `tasks-frontend.md`'s dashboard pages). PLAN.md's `configs` and `market`
+ * route groups still don't exist; they belong to whichever future section
+ * actually needs them.
  */
 export function createApp(): Express {
   const app = express();
@@ -19,5 +23,7 @@ export function createApp(): Express {
   });
 
   app.use("/backtests", backtestsRouter);
+  app.use("/strategies", strategiesRouter);
+  app.use("/sessions", sessionsRouter);
   return app;
 }

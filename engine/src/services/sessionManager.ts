@@ -52,6 +52,13 @@ interface RunningSession extends DecisionProcessingContext {
   unsubscribe: () => void;
   /** Guards against a tick arriving while the previous tick's DB transaction is still in flight. A skipped tick is harmless — the next one carries the same state forward. */
   processing: boolean;
+  /**
+   * Most recent tick price, updated on every tick regardless of `processing`
+   * or whether a decision fired — purely informational (drives `GET
+   * /sessions/:id`'s live current-price/equity display), never read by the
+   * booking logic itself. `null` until the first tick arrives after start.
+   */
+  lastPrice: number | null;
 }
 
 const runningSessions = new Map<number, RunningSession>();
@@ -225,7 +232,9 @@ async function loadPortfolio(sessionId: number, initialQuote: number, initialBas
 
 async function handleTick(sessionId: number, point: PricePoint): Promise<void> {
   const ctx = runningSessions.get(sessionId);
-  if (!ctx || ctx.processing) return;
+  if (!ctx) return;
+  ctx.lastPrice = point.price; // updated even on a skipped (overlapping) tick — display-only, safe to be a tick stale
+  if (ctx.processing) return;
   ctx.processing = true;
   try {
     const decisions = ctx.strategy.onPrice(point, ctx.portfolio);
@@ -307,6 +316,7 @@ export async function startSession(sessionId: number): Promise<void> {
     maxSpendPerOrder: session.maxSpendPerOrder !== null ? Number(session.maxSpendPerOrder) : null,
     maxPositionSize: session.maxPositionSize !== null ? Number(session.maxPositionSize) : null,
     processing: false,
+    lastPrice: null,
     unsubscribe: () => {},
   };
   runningSession.unsubscribe = priceStream.subscribe(session.productId, (point) => {
@@ -359,4 +369,16 @@ export async function resumeRunningSessions(): Promise<void> {
 /** Session IDs currently subscribed and receiving ticks in this process — for a health check or a test. */
 export function getRunningSessionIds(): number[] {
   return Array.from(runningSessions.keys());
+}
+
+/** Live in-memory state for a session actively running in this process — the source of truth for a current price/equity display, which is always more current than the last persisted `Balance` row (only written when a decision actually fires, not every tick). `null` if the session isn't running here (stopped, paused, failed, or not yet resumed). */
+export interface SessionRuntimeSnapshot {
+  lastPrice: number | null;
+  quoteBalance: number;
+  baseBalance: number;
+}
+export function getSessionRuntimeSnapshot(sessionId: number): SessionRuntimeSnapshot | null {
+  const ctx = runningSessions.get(sessionId);
+  if (!ctx) return null;
+  return { lastPrice: ctx.lastPrice, quoteBalance: ctx.portfolio.quoteBalance, baseBalance: ctx.portfolio.baseBalance };
 }

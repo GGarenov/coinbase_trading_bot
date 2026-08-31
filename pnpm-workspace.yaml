@@ -7,3 +7,12 @@ allowBuilds:
   better-sqlite3: true
   esbuild: true
   prisma: true
+  # Native/postinstall build scripts create-next-app's pnpm template flags for a Next.js app —
+  # explicitly NOT approved (sharp is only needed for Next's built-in image optimizer, which this
+  # dashboard doesn't use yet; unrs-resolver is an optional native speedup for a resolver we don't
+  # need to be fast). Merged in from web/pnpm-workspace.yaml, which create-next-app generates as if
+  # `web/` were its own workspace root — deleted, since a workspace member declaring a second
+  # pnpm-workspace.yaml would make `cd web && pnpm install` silently create a nested, disconnected
+  # workspace instead of using this one.
+  sharp: false
+  unrs-resolver: false
