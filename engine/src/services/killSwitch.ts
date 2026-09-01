@@ -1,4 +1,4 @@
-import { prisma } from "@coinbase-trading-bot/shared";
+import { prisma } from "@coinbase-trading-bot/shared/server";
 
 /**
  * A single-row DB flag (`SystemSetting`, id always 1) — the global

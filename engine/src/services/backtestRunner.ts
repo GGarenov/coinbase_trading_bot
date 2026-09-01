@@ -1,5 +1,6 @@
 import type { FeeSchedule, Granularity, PortfolioState, PricePoint } from "@coinbase-trading-bot/shared";
-import { getStrategyDefinition, prisma } from "@coinbase-trading-bot/shared";
+import { getStrategyDefinition } from "@coinbase-trading-bot/shared";
+import { prisma } from "@coinbase-trading-bot/shared/server";
 import type { BacktestReport } from "./backtestAnalytics";
 import { computePerformanceMetrics } from "./backtestAnalytics";
 import { checkCurveFittingRisk } from "./curveFittingCheck";

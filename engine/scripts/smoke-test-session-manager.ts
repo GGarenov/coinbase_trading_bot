@@ -10,7 +10,7 @@
  * than depending on the live price actually crossing a grid level or an
  * indicator condition within the test's short run time.
  */
-import { prisma } from "@coinbase-trading-bot/shared";
+import { prisma } from "@coinbase-trading-bot/shared/server";
 import { createSession } from "../src/services/sessionFactory";
 import { getRunningSessionIds, priceStream, startSession, stopSession } from "../src/services/sessionManager";
 

@@ -7,7 +7,7 @@
  * hitting Coinbase again. Also exercises the curve-fitting warning by
  * running two different configs over the same window.
  */
-import { prisma } from "@coinbase-trading-bot/shared";
+import { prisma } from "@coinbase-trading-bot/shared/server";
 import { createApp } from "../src/app";
 
 const PRODUCT_ID = "SOL-USDC";

@@ -32,6 +32,9 @@ yarn-error.log*
 
 # env files (can opt-in for committing if needed)
 .env*
+# ...except the documentation template itself — same convention as the repo root's .env.example,
+# which is intentionally tracked (real secrets go in .env.local, which stays ignored above).
+!.env.example
 
 # vercel
 .vercel

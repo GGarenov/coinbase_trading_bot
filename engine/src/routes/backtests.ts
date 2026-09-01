@@ -1,5 +1,5 @@
 import type { FeeSchedule } from "@coinbase-trading-bot/shared";
-import { prisma } from "@coinbase-trading-bot/shared";
+import { prisma } from "@coinbase-trading-bot/shared/server";
 import { Router } from "express";
 import type { Router as ExpressRouter } from "express";
 import { z } from "zod";

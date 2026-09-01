@@ -2,10 +2,12 @@ import type {
   FeeSchedule,
   PortfolioState,
   PricePoint,
+  SessionMode,
   StrategyInstance,
   TradeDecision,
 } from "@coinbase-trading-bot/shared";
-import { getStrategyDefinition, prisma } from "@coinbase-trading-bot/shared";
+import { getStrategyDefinition } from "@coinbase-trading-bot/shared";
+import { prisma } from "@coinbase-trading-bot/shared/server";
 import { executeOrder } from "../exchange/coinbase/orderExecutor";
 import type { ProductInfo } from "../exchange/coinbase/rest";
 import { fetchProductInfo } from "../exchange/coinbase/rest";
@@ -13,8 +15,6 @@ import { PriceStream } from "../exchange/coinbase/stream";
 import { checkLiveSafety } from "./liveSafetyGuard";
 import { recordMissedFill } from "./missedFillTracker";
 import { applyFillToPortfolio, type OrderDecision, simulateFill } from "./simulation";
-
-type SessionMode = "BACKTEST" | "PAPER" | "LIVE";
 
 /**
  * One shared, refcounted `PriceStream` for every paper/live session this

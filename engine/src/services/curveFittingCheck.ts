@@ -1,4 +1,4 @@
-import { prisma } from "@coinbase-trading-bot/shared";
+import { prisma } from "@coinbase-trading-bot/shared/server";
 
 export const OUT_OF_SAMPLE_RECOMMENDATION =
   "Before trusting this result, re-run the same parameters over a different historical " +

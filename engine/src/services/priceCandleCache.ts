@@ -1,5 +1,5 @@
 import type { Candle, Granularity } from "@coinbase-trading-bot/shared";
-import { prisma } from "@coinbase-trading-bot/shared";
+import { prisma } from "@coinbase-trading-bot/shared/server";
 import { fetchCandles } from "../exchange/coinbase/rest";
 
 const GRANULARITY_MS: Record<Granularity, number> = {

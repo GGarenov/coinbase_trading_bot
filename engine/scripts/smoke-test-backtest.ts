@@ -10,7 +10,7 @@
  * (multiple times, over a 3-day window) regardless of what the actual
  * price did.
  */
-import { prisma } from "@coinbase-trading-bot/shared";
+import { prisma } from "@coinbase-trading-bot/shared/server";
 import { runBacktest } from "../src/services/backtestRunner";
 import { createSession } from "../src/services/sessionFactory";
 

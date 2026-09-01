@@ -12,7 +12,7 @@
  * first tick rather than depending on a live price crossing a level within
  * this test's short run time.
  */
-import { prisma } from "@coinbase-trading-bot/shared";
+import { prisma } from "@coinbase-trading-bot/shared/server";
 import { createApp } from "../src/app";
 import { priceStream } from "../src/services/sessionManager";
 
@@ -88,7 +88,7 @@ async function main() {
       currentPrice: number | null;
       quoteBalance: number;
       feesPaid: number;
-      recentOrders: unknown[];
+      recentOrders: Array<{ price: number | null; size: number | null; fills: Array<{ price: number; size: number; fee: number }> }>;
       isRunningInThisProcess: boolean;
     };
     if (!detail.isRunningInThisProcess) throw new Error("Expected isRunningInThisProcess to be true right after starting");
@@ -96,7 +96,14 @@ async function main() {
     if (detail.quoteBalance >= 1000) throw new Error(`Expected quoteBalance to have dropped below 1000 after the immediate DCA buy, got ${detail.quoteBalance}`);
     if (detail.feesPaid <= 0) throw new Error(`Expected feesPaid > 0 after a fill, got ${detail.feesPaid}`);
     if (detail.recentOrders.length === 0) throw new Error("Expected at least one order in recentOrders");
-    console.log(`GET /sessions/${sessionId}: 200, currentPrice=${detail.currentPrice}, quoteBalance=${detail.quoteBalance}, feesPaid=${detail.feesPaid}`);
+    // Prisma's Decimal fields serialize to JSON as strings by default (decimal.js's own toJSON) —
+    // routes/sessions.ts explicitly converts them with Number(...) before responding, so a naive
+    // `typeof` check here catches a regression if that conversion is ever accidentally dropped.
+    const firstFill = detail.recentOrders[0].fills[0];
+    if (typeof firstFill.price !== "number" || typeof firstFill.size !== "number" || typeof firstFill.fee !== "number") {
+      throw new Error(`Expected recentOrders[].fills[].price/size/fee to be numbers, got ${JSON.stringify(firstFill)}`);
+    }
+    console.log(`GET /sessions/${sessionId}: 200, currentPrice=${detail.currentPrice}, quoteBalance=${detail.quoteBalance}, feesPaid=${detail.feesPaid}, fill price/size/fee are numbers (not Decimal strings)`);
 
     // --- GET /sessions/compare ---
     const compareRes = await fetch(`${baseUrl}/sessions/compare`);

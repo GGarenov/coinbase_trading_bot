@@ -1,5 +1,6 @@
 import type { FeeSchedule } from "@coinbase-trading-bot/shared";
-import { prisma } from "@coinbase-trading-bot/shared";
+import { prisma } from "@coinbase-trading-bot/shared/server";
+import type { Prisma } from "@prisma/client";
 import { Router } from "express";
 import type { Router as ExpressRouter } from "express";
 import { z } from "zod";
@@ -27,6 +28,68 @@ const createSessionSchema = z.object({
   maxSpendPerOrder: z.number().positive().optional(),
   maxPositionSize: z.number().positive().optional(),
 });
+
+type OrderWithFills = Prisma.OrderGetPayload<{ include: { fills: true } }>;
+
+/**
+ * Prisma's `Decimal` fields serialize to JSON as STRINGS (via decimal.js's
+ * own `toJSON()`), not numbers — confirmed empirically, not assumed. Every
+ * other numeric field in this route's responses is explicitly converted
+ * with `Number(...)` before `res.json()`; these three mapping functions do
+ * the same for `Order`/`Fill`/`Trade`/`MissedFill` rows specifically, so
+ * `GET /sessions/:id`'s wire contract is consistently all-numbers, not a
+ * mix of numbers and numeric-looking strings depending on which field you
+ * ask for.
+ */
+function toOrderDto(order: OrderWithFills) {
+  return {
+    id: order.id,
+    side: order.side,
+    type: order.type,
+    price: order.price !== null ? Number(order.price) : null,
+    stopPrice: order.stopPrice !== null ? Number(order.stopPrice) : null,
+    size: order.size !== null ? Number(order.size) : null,
+    status: order.status,
+    exchangeOrderId: order.exchangeOrderId,
+    levelPrice: order.levelPrice !== null ? Number(order.levelPrice) : null,
+    rejectionReason: order.rejectionReason,
+    createdAt: order.createdAt,
+    filledAt: order.filledAt,
+    fills: order.fills.map((f) => ({
+      id: f.id,
+      price: Number(f.price),
+      size: Number(f.size),
+      fee: Number(f.fee),
+      feeRate: Number(f.feeRate),
+      liquidity: f.liquidity,
+      timestamp: f.timestamp,
+    })),
+  };
+}
+
+function toTradeDto(trade: Prisma.TradeGetPayload<object>) {
+  return {
+    id: trade.id,
+    buyFillId: trade.buyFillId,
+    sellFillId: trade.sellFillId,
+    costBasis: Number(trade.costBasis),
+    proceeds: Number(trade.proceeds),
+    feesTotal: Number(trade.feesTotal),
+    pnl: Number(trade.pnl),
+    openedAt: trade.openedAt,
+    closedAt: trade.closedAt,
+  };
+}
+
+function toMissedFillDto(missedFill: Prisma.MissedFillGetPayload<object>) {
+  return {
+    id: missedFill.id,
+    levelPrice: Number(missedFill.levelPrice),
+    side: missedFill.side,
+    reason: missedFill.reason,
+    occurredAt: missedFill.occurredAt,
+  };
+}
 
 function toSessionSummary(session: {
   id: number;
@@ -248,9 +311,9 @@ sessionsRouter.get("/:id", async (req, res) => {
     realizedPnl,
     feesPaid: Number(feesAgg._sum.fee ?? 0),
     strategyState: session.strategyState,
-    recentOrders: session.orders,
-    recentTrades: session.trades,
-    missedFills: session.missedFills,
+    recentOrders: session.orders.map(toOrderDto),
+    recentTrades: session.trades.map(toTradeDto),
+    missedFills: session.missedFills.map(toMissedFillDto),
   });
 });
 

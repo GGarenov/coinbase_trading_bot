@@ -1,5 +1,6 @@
 import type { FeeSchedule } from "@coinbase-trading-bot/shared";
-import { DEFAULT_FEE_SCHEDULE, prisma } from "@coinbase-trading-bot/shared";
+import { DEFAULT_FEE_SCHEDULE } from "@coinbase-trading-bot/shared";
+import { prisma } from "@coinbase-trading-bot/shared/server";
 
 type SessionMode = "BACKTEST" | "PAPER" | "LIVE";
 
