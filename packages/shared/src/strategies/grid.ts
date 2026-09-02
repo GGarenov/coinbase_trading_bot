@@ -199,6 +199,7 @@ class GridInstance implements StrategyInstance {
               quantity: slot.quantity!,
               costBasis: slot.costBasis!,
               levelPrice: sellPrice,
+              closingLevelPrice: buyPrice,
             });
             slot.status = "idle";
             slot.quantity = null;
@@ -218,6 +219,7 @@ class GridInstance implements StrategyInstance {
             quantity: slot.quantity!,
             costBasis: slot.costBasis!,
             levelPrice: sellPrice,
+            closingLevelPrice: buyPrice,
           });
           slot.status = "idle";
           slot.quantity = null;
@@ -232,6 +234,7 @@ class GridInstance implements StrategyInstance {
               quantity: slot.quantity!,
               costBasis: slot.costBasis!,
               levelPrice: sellPrice,
+              closingLevelPrice: buyPrice,
             });
             slot.status = "idle";
             slot.quantity = null;

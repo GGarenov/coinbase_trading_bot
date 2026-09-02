@@ -151,6 +151,36 @@ export function getStrategy(slug: string): Promise<StrategyCatalogEntry> {
 }
 
 // ---------------------------------------------------------------------------
+// Strategy configs (Phase 4.4) — POST /configs
+// ---------------------------------------------------------------------------
+
+export interface CreateStrategyConfigInput {
+  strategySlug: string;
+  /** Optional — the engine defaults to "<strategy name> — <timestamp>" server-side when omitted. */
+  name?: string;
+  /** Validated server-side against the strategy's own `paramsSchema` before the row is created. */
+  params: unknown;
+}
+
+export interface StrategyConfigResult {
+  id: number;
+  strategyId: number;
+  name: string;
+  params: unknown;
+}
+
+/**
+ * Creates a `StrategyConfig` from a filled-out config form — required
+ * before `createSession`/`createBacktest` below, both of which need an
+ * EXISTING `strategyConfigId`. On a 400 (params failing the strategy's own
+ * schema), `ApiError.details` carries the same `zod` `.flatten()` shape as
+ * other validation errors in this file.
+ */
+export function createStrategyConfig(input: CreateStrategyConfigInput): Promise<StrategyConfigResult> {
+  return post<StrategyConfigResult>("/configs", input);
+}
+
+// ---------------------------------------------------------------------------
 // Sessions: list + detail (Phase 2.3) — GET /sessions, GET /sessions/:id
 // ---------------------------------------------------------------------------
 
@@ -259,6 +289,9 @@ export interface SessionDetail {
   recentTrades: TradeDto[];
   /** Up to 50 most recent missed-fill events, newest first. */
   missedFills: MissedFillDto[];
+  /** Live-Trading Safety Rails caps (null = no cap set) — only meaningful when `mode` is `"LIVE"`. */
+  maxSpendPerOrder: number | null;
+  maxPositionSize: number | null;
 }
 
 /** Throws `ApiError` with `status: 404` for a BACKTEST session id — use `getBacktest` for those instead. */
@@ -409,6 +442,8 @@ export interface CreateBacktestInput {
 export interface BacktestResult {
   sessionId: number;
   status: SessionStatus;
+  strategy: StrategyRef;
+  productId: string;
   report: BacktestReport;
 }
 
@@ -420,6 +455,7 @@ export function createBacktest(input: CreateBacktestInput): Promise<BacktestResu
 export interface BacktestSummary {
   sessionId: number;
   status: SessionStatus;
+  strategy: StrategyRef;
   productId: string;
   startDate: string | null;
   endDate: string | null;
@@ -430,4 +466,17 @@ export interface BacktestSummary {
 
 export function getBacktest(id: number): Promise<BacktestSummary> {
   return get<BacktestSummary>(`/backtests/${id}`);
+}
+
+// ---------------------------------------------------------------------------
+// Kill switch (Phase 6.7) — GET /kill-switch
+// ---------------------------------------------------------------------------
+
+export interface KillSwitchState {
+  engaged: boolean;
+}
+
+/** Read-only — no toggle exists yet (nothing has asked for one; see `routes/killSwitch.ts`'s own doc comment). */
+export function getKillSwitch(): Promise<KillSwitchState> {
+  return get<KillSwitchState>("/kill-switch");
 }

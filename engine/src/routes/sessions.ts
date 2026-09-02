@@ -302,6 +302,10 @@ sessionsRouter.get("/:id", async (req, res) => {
     startedAt: session.startedAt,
     stoppedAt: session.stoppedAt,
     error: session.error,
+    // Live-Trading Safety Rails caps (null = no cap) — added for tasks-frontend.md Phase 6.7's
+    // LIVE-session indicator; only meaningful when mode is LIVE, but harmless (always null) for PAPER.
+    maxSpendPerOrder: session.maxSpendPerOrder !== null ? Number(session.maxSpendPerOrder) : null,
+    maxPositionSize: session.maxPositionSize !== null ? Number(session.maxPositionSize) : null,
     isRunningInThisProcess: runtime !== null,
     currentPrice,
     quoteBalance,

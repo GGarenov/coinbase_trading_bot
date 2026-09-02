@@ -45,8 +45,26 @@ export type TradeDecision =
       quantity: number;
       /** What was paid (in quote currency) for the position being closed. */
       costBasis: number;
-      /** Which configured grid level this belongs to, if any. */
+      /**
+       * The price of the level THIS sell triggers/executes at (grid's own sell
+       * level, e.g. 105) — used as the order's intended limit/execution price
+       * (`orderExecutor.ts`/`simulation.ts`). NOT the buy level being closed —
+       * see `closingLevelPrice` for that. Deliberately two separate fields:
+       * conflating them into one was a real bug (found via tasks-qa.md's
+       * Phase 3), since a grid sell's own trigger level and the buy level it
+       * closes are two different, independently-configured prices.
+       */
       levelPrice?: number;
+      /**
+       * The BUY level's price that this sell is closing (grid pairs BUY/SELL
+       * levels by declaration order — see grid.ts's class doc comment — so
+       * this is NOT necessarily equal to `levelPrice` above). This is what
+       * `sessionManager.ts` uses to look up the exact `Order` row being
+       * closed and create the round-trip `Trade` row; using `levelPrice`
+       * there instead (the sell's own level) silently found no match for
+       * every grid round trip until this field was added.
+       */
+      closingLevelPrice?: number;
     }
   | {
       kind: "MISSED_FILL";

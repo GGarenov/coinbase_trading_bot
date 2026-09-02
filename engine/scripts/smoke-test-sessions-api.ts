@@ -1,11 +1,15 @@
 /**
- * Manual smoke test for the new /strategies and /sessions HTTP routes
- * (routes/strategies.ts, routes/sessions.ts, app.ts) — added to unblock
- * tasks-frontend.md's dashboard pages (see tasks-backend.md's "HTTP API —
- * Strategy & Session Routes" section). Makes real HTTP requests against a
- * locally-started instance of the actual engine app, starts a real PAPER
- * session against Coinbase's live SOL-USDC ticker feed, and exercises the
- * full start -> pause -> resume -> stop lifecycle plus the compare route.
+ * Manual smoke test for the /configs, /strategies, and /sessions HTTP
+ * routes (routes/configs.ts, routes/strategies.ts, routes/sessions.ts,
+ * app.ts) — added to unblock tasks-frontend.md's dashboard pages (see
+ * tasks-backend.md's "HTTP API — Strategy & Session Routes" and "HTTP API
+ * — Strategy Config Route" sections). Makes real HTTP requests against a
+ * locally-started instance of the actual engine app, creates a real
+ * StrategyConfig through the HTTP API (no direct Prisma access — this is
+ * the exact path the dashboard's config form will use), starts a real
+ * PAPER session against Coinbase's live SOL-USDC ticker feed, and
+ * exercises the full start -> pause -> resume -> stop lifecycle plus the
+ * compare route.
  *
  * Uses "dca" configured to buy immediately, same reasoning as
  * smoke-test-session-manager.ts: guaranteed to produce a fill on the very
@@ -20,20 +24,12 @@ const RUN_MS = 10_000;
 const PRODUCT_ID = "SOL-USDC";
 
 async function main() {
-  const strategy = await prisma.strategy.findUniqueOrThrow({ where: { slug: "dca" } });
-  const strategyConfig = await prisma.strategyConfig.create({
-    data: {
-      strategyId: strategy.id,
-      name: "smoke-test-sessions-api (ephemeral)",
-      params: { productId: PRODUCT_ID, amountPerBuy: 10, interval: "daily", durationDays: 1 },
-    },
-  });
-
   const app = createApp();
   const server = app.listen(0);
   const port = (server.address() as { port: number }).port;
   const baseUrl = `http://127.0.0.1:${port}`;
 
+  let strategyConfigId: number | undefined;
   let sessionId: number | undefined;
   try {
     // --- GET /strategies + GET /strategies/:slug ---
@@ -53,12 +49,35 @@ async function main() {
     if (missingRes.status !== 404) throw new Error(`Expected 404 for an unknown slug, got ${missingRes.status}`);
     console.log("GET /strategies/not-a-real-slug: 404, as expected");
 
+    // --- POST /configs ---
+    const badConfigRes = await fetch(`${baseUrl}/configs`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ strategySlug: "dca", params: { productId: PRODUCT_ID /* missing amountPerBuy/interval/durationDays */ } }),
+    });
+    if (badConfigRes.status !== 400) throw new Error(`Expected 400 for params failing dca's own schema, got ${badConfigRes.status}`);
+    console.log("POST /configs (invalid params): 400, as expected");
+
+    const configRes = await fetch(`${baseUrl}/configs`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        strategySlug: "dca",
+        name: "smoke-test-sessions-api (ephemeral)",
+        params: { productId: PRODUCT_ID, amountPerBuy: 10, interval: "daily", durationDays: 1 },
+      }),
+    });
+    if (configRes.status !== 201) throw new Error(`Expected 201 from POST /configs, got ${configRes.status}: ${await configRes.text()}`);
+    const config = (await configRes.json()) as { id: number };
+    strategyConfigId = config.id;
+    console.log(`POST /configs: 201, config ${strategyConfigId}`);
+
     // --- POST /sessions ---
     const createRes = await fetch(`${baseUrl}/sessions`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        strategyConfigId: strategyConfig.id,
+        strategyConfigId,
         productId: PRODUCT_ID,
         mode: "PAPER",
         initialQuoteBalance: 1000,
@@ -133,7 +152,7 @@ async function main() {
     if (afterStop.status !== "STOPPED") throw new Error(`Expected STOPPED, got ${afterStop.status}`);
     console.log(`POST /sessions/${sessionId}/stop: session STOPPED`);
 
-    console.log("SMOKE TEST (strategies/sessions HTTP routes): PASSED");
+    console.log("SMOKE TEST (configs/strategies/sessions HTTP routes): PASSED");
   } finally {
     server.close();
     priceStream.close();
@@ -145,13 +164,15 @@ async function main() {
       await prisma.order.deleteMany({ where: { sessionId } });
       await prisma.session.delete({ where: { id: sessionId } });
     }
-    await prisma.strategyConfig.delete({ where: { id: strategyConfig.id } });
+    if (strategyConfigId !== undefined) {
+      await prisma.strategyConfig.delete({ where: { id: strategyConfigId } });
+    }
   }
 }
 
 main()
   .catch((error) => {
-    console.error("SMOKE TEST (strategies/sessions HTTP routes): FAILED");
+    console.error("SMOKE TEST (configs/strategies/sessions HTTP routes): FAILED");
     console.error(error);
     process.exitCode = 1;
   })

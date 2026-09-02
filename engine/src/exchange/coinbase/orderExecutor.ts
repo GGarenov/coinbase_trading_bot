@@ -95,6 +95,19 @@ export async function executeOrder(
     );
   }
 
+  // Quote-notional floor — `ProductInfo.quoteMinSize` (see its doc comment: the current API's
+  // equivalent of the old `min_market_funds`) was fetched but never actually checked here. A
+  // small base-currency order can still fail baseMinSize while a large-price product's rounded
+  // size clears baseMinSize yet is still below the exchange's minimum order *value* — this closes
+  // that gap. Uses the same best-effort reference price a market order's `size` estimate already
+  // relies on above; a limit/stop-limit order checks against its own intended limit price instead.
+  const notionalForFloorCheck = baseSize * (limitPrice ?? referencePrice);
+  if (notionalForFloorCheck < productInfo.quoteMinSize) {
+    throw new Error(
+      `Order notional ${notionalForFloorCheck} is below ${productInfo.productId}'s quoteMinSize ${productInfo.quoteMinSize} after rounding down to the increment`,
+    );
+  }
+
   const clientOrderId = `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
   const result = await client.placeOrder({
     productId: productInfo.productId,

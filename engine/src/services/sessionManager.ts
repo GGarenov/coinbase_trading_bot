@@ -168,11 +168,23 @@ export async function processDecisions(ctx: DecisionProcessingContext, decisions
       });
 
       if (decision.side === "SELL") {
-        // Every strategy that can sell reports the exact levelPrice it's closing (grid is the only
-        // one that sells today), so the most recent BUY order at that level for this session IS the
-        // position being closed — no FIFO matching across the session's whole fill history needed.
+        // Every strategy that can sell reports the exact BUY level it's closing via
+        // `closingLevelPrice` — grid is the only one that sells today, and pairs BUY/SELL levels by
+        // declaration order (not price adjacency), so its `closingLevelPrice` is the paired BUY
+        // level's price, which is NOT the same as `levelPrice` (the SELL's own trigger/execution
+        // level — see the TradeDecision doc comment). The most recent BUY order at that level for
+        // this session IS the position being closed — no FIFO matching across the session's whole
+        // fill history needed.
+        //
+        // ⚠️ Real bug, fixed 2026-09-02 (found via tasks-qa.md's Phase 3): this used to look up by
+        // `decision.levelPrice` — grid's SELL decisions set that to the SELL level's OWN price
+        // (correctly, since orderExecutor.ts/simulation.ts need it as the execution price), which is
+        // a DIFFERENT number from the BUY level being closed. The lookup below therefore never found
+        // a match for any grid round trip, ever — money/equity were still correct (Order/Fill
+        // persisted regardless), but no Trade row was ever created, so win rate/profit factor/round
+        // trip count silently stayed null/zero for every grid session in this project's history.
         const buyOrder = await tx.order.findFirst({
-          where: { sessionId: ctx.sessionId, side: "BUY", levelPrice: decision.levelPrice ?? undefined },
+          where: { sessionId: ctx.sessionId, side: "BUY", levelPrice: decision.closingLevelPrice ?? undefined },
           orderBy: { createdAt: "desc" },
           include: { fills: true },
         });
@@ -200,7 +212,7 @@ export async function processDecisions(ctx: DecisionProcessingContext, decisions
           // fail loudly rather than silently fabricate a Trade row with an unknown buy-side fee.
           // The Order/Fill above are still persisted either way, so the money itself is accounted for.
           console.warn(
-            `[sessionManager] session ${ctx.sessionId}: SELL at level ${decision.levelPrice} has no matching BUY fill on record — Order/Fill were persisted, but no Trade round-trip row was created`,
+            `[sessionManager] session ${ctx.sessionId}: SELL closing BUY level ${decision.closingLevelPrice} has no matching BUY fill on record — Order/Fill were persisted, but no Trade round-trip row was created`,
           );
         }
       }

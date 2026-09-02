@@ -52,8 +52,17 @@ backtestsRouter.post("/", async (req, res) => {
 
     await runBacktest(session.id);
 
-    const completed = await prisma.session.findUniqueOrThrow({ where: { id: session.id } });
-    res.status(201).json({ sessionId: completed.id, status: completed.status, report: completed.resultsSummary });
+    const completed = await prisma.session.findUniqueOrThrow({
+      where: { id: session.id },
+      include: { strategyConfig: { include: { strategy: true } } },
+    });
+    res.status(201).json({
+      sessionId: completed.id,
+      status: completed.status,
+      strategy: { slug: completed.strategyConfig.strategy.slug, name: completed.strategyConfig.strategy.name },
+      productId: completed.productId,
+      report: completed.resultsSummary,
+    });
   } catch (error) {
     res.status(500).json({ error: error instanceof Error ? error.message : String(error) });
   }
@@ -67,7 +76,10 @@ backtestsRouter.get("/:id", async (req, res) => {
     return;
   }
 
-  const session = await prisma.session.findUnique({ where: { id } });
+  const session = await prisma.session.findUnique({
+    where: { id },
+    include: { strategyConfig: { include: { strategy: true } } },
+  });
   if (!session || session.mode !== "BACKTEST") {
     res.status(404).json({ error: `No backtest session with id ${id}` });
     return;
@@ -76,6 +88,7 @@ backtestsRouter.get("/:id", async (req, res) => {
   res.json({
     sessionId: session.id,
     status: session.status,
+    strategy: { slug: session.strategyConfig.strategy.slug, name: session.strategyConfig.strategy.name },
     productId: session.productId,
     startDate: session.startDate,
     endDate: session.endDate,
