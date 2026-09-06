@@ -22,10 +22,10 @@ export default async function SessionDetailPage({ params }: { params: Promise<{ 
   return (
     <div className="mx-auto max-w-5xl space-y-6 px-6 py-10">
       <div>
-        <p className="text-sm text-zinc-500 dark:text-zinc-400">
+        <p className="text-base text-muted">
           Session #{session.id} · {session.strategy.name} · {session.productId}
         </p>
-        <h1 className="mt-1 text-2xl font-semibold tracking-tight">{session.strategy.name}</h1>
+        <h1 className="mt-1 text-3xl font-semibold tracking-tight">{session.strategy.name}</h1>
       </div>
       <SessionDetailClient id={sessionId} initial={session} />
     </div>

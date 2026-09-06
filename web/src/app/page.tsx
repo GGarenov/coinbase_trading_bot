@@ -30,8 +30,8 @@ export default async function HomePage() {
   return (
     <div className="mx-auto max-w-5xl space-y-12 px-6 py-10">
       <section>
-        <h1 className="text-2xl font-semibold tracking-tight">Strategy Library</h1>
-        <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
+        <h1 className="text-3xl font-semibold tracking-tight">Strategy Library</h1>
+        <p className="mt-1 text-base text-muted">
           Pick a strategy to configure a backtest or start a paper/live session.
         </p>
         {strategies.length === 0 ? (
@@ -47,7 +47,7 @@ export default async function HomePage() {
 
       <section>
         <h2 className="text-2xl font-semibold tracking-tight">Sessions</h2>
-        <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">Paper and live sessions started from a strategy&apos;s config form.</p>
+        <p className="mt-1 text-base text-muted">Paper and live sessions started from a strategy&apos;s config form.</p>
         {sessions.length === 0 ? (
           <EmptyState message="No sessions yet — start one from a strategy above." />
         ) : (

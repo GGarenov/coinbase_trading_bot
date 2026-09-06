@@ -11,12 +11,10 @@ import {
 import { describeError } from "@/lib/describeError";
 import type { JsonSchemaNode, PathSegment } from "@/lib/jsonSchemaForm";
 import { getAtPath, setAtPath, validateAgainstSchema } from "@/lib/jsonSchemaForm";
+import { Button } from "./Button";
+import { Card } from "./Card";
+import { inputClass, labelClass } from "./Input";
 import { SchemaField } from "./SchemaField";
-
-const inputClass =
-  "w-full rounded-md border border-black/10 bg-transparent px-3 py-1.5 text-sm outline-none focus:border-black/30 dark:border-white/15 dark:focus:border-white/40";
-const labelClass = "block text-sm font-medium text-zinc-700 dark:text-zinc-300";
-const cardClass = "rounded-lg border border-black/10 p-5 dark:border-white/10";
 
 type ActionState = { kind: "idle" } | { kind: "busy"; action: string } | { kind: "error"; message: string };
 
@@ -106,7 +104,7 @@ export function ConfigForm({ strategy }: { strategy: StrategyCatalogEntry }) {
 
   if (!schema) {
     return (
-      <p className="text-sm text-red-600 dark:text-red-400">
+      <p className="text-base text-red-400">
         This strategy has no params schema on record — its catalog row doesn&apos;t match a registered strategy implementation.
       </p>
     );
@@ -117,7 +115,7 @@ export function ConfigForm({ strategy }: { strategy: StrategyCatalogEntry }) {
       <SchemaField schema={schema} value={params} path={[]} label="Parameters" onSet={setParam} onAddItem={addParamItem} onRemoveItem={removeParamItem} />
 
       {paramErrors.length > 0 && (
-        <div className="rounded-md border border-red-300 bg-red-50 p-3 text-sm text-red-700 dark:border-red-900/50 dark:bg-red-950/30 dark:text-red-400">
+        <div className="rounded-lg border border-red-900/50 bg-red-950/30 p-4 text-base text-red-400">
           <p className="font-medium">Fix the following before continuing:</p>
           <ul className="mt-1 list-inside list-disc">
             {paramErrors.map((e, i) => (
@@ -127,9 +125,9 @@ export function ConfigForm({ strategy }: { strategy: StrategyCatalogEntry }) {
         </div>
       )}
 
-      <div className={cardClass}>
-        <h2 className="font-medium">Session setup</h2>
-        <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">Starting balances for a backtest, paper, or live session.</p>
+      <Card>
+        <h2 className="text-lg font-medium">Session setup</h2>
+        <p className="mt-1 text-base text-muted">Starting balances for a backtest, paper, or live session.</p>
         <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
           <label htmlFor="initialQuoteBalance" className="block">
             <span className={labelClass}>Initial quote balance</span>
@@ -140,10 +138,10 @@ export function ConfigForm({ strategy }: { strategy: StrategyCatalogEntry }) {
             <input id="initialBaseBalance" name="initialBaseBalance" type="number" min={0} className={`${inputClass} mt-1`} value={initialBaseBalance} onChange={(e) => setInitialBaseBalance(Number(e.target.value))} />
           </label>
         </div>
-      </div>
+      </Card>
 
-      <div className={cardClass}>
-        <h2 className="font-medium">Backtest</h2>
+      <Card>
+        <h2 className="text-lg font-medium">Backtest</h2>
         <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
           <label htmlFor="startDate" className="block">
             <span className={labelClass}>Start date</span>
@@ -154,32 +152,22 @@ export function ConfigForm({ strategy }: { strategy: StrategyCatalogEntry }) {
             <input id="endDate" name="endDate" type="date" className={`${inputClass} mt-1`} value={endDate} onChange={(e) => setEndDate(e.target.value)} max={todayIso(0)} />
           </label>
         </div>
-        <button
-          type="button"
-          disabled={busy}
-          onClick={() => runAction("backtest")}
-          className="mt-4 rounded-full bg-zinc-900 px-5 py-2 text-sm font-medium text-white transition-colors hover:bg-zinc-700 disabled:opacity-50 dark:bg-white dark:text-black dark:hover:bg-zinc-200"
-        >
+        <Button type="button" disabled={busy} onClick={() => runAction("backtest")} className="mt-4">
           {actionState.kind === "busy" && actionState.action === "backtest" ? "Running backtest…" : "Launch backtest"}
-        </button>
-      </div>
+        </Button>
+      </Card>
 
-      <div className={cardClass}>
-        <h2 className="font-medium">Paper session</h2>
-        <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">Simulated fills against live Coinbase prices — no real orders.</p>
-        <button
-          type="button"
-          disabled={busy}
-          onClick={() => runAction("paper")}
-          className="mt-4 rounded-full bg-zinc-900 px-5 py-2 text-sm font-medium text-white transition-colors hover:bg-zinc-700 disabled:opacity-50 dark:bg-white dark:text-black dark:hover:bg-zinc-200"
-        >
+      <Card>
+        <h2 className="text-lg font-medium">Paper session</h2>
+        <p className="mt-1 text-base text-muted">Simulated fills against live Coinbase prices — no real orders.</p>
+        <Button type="button" disabled={busy} onClick={() => runAction("paper")} className="mt-4">
           {actionState.kind === "busy" && actionState.action === "paper" ? "Starting…" : "Start paper session"}
-        </button>
-      </div>
+        </Button>
+      </Card>
 
-      <div className={`${cardClass} border-red-200 dark:border-red-900/50`}>
-        <h2 className="font-medium text-red-700 dark:text-red-400">Live session</h2>
-        <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
+      <Card className="border-red-900/50">
+        <h2 className="text-lg font-medium text-red-400">Live session</h2>
+        <p className="mt-1 text-base text-muted">
           Places REAL orders with REAL funds. Blocked server-side unless the engine has `LIVE_TRADING_ENABLED=true` and the kill switch is off — see
           `docs/live-safety-test-plan.md`.
         </p>
@@ -193,24 +181,17 @@ export function ConfigForm({ strategy }: { strategy: StrategyCatalogEntry }) {
             <input id="maxPositionSize" name="maxPositionSize" type="number" min={0} className={`${inputClass} mt-1`} value={maxPositionSize} onChange={(e) => setMaxPositionSize(e.target.value)} />
           </label>
         </div>
-        <label htmlFor="liveConfirmed" className="mt-3 flex items-start gap-2 text-sm">
-          <input id="liveConfirmed" name="liveConfirmed" type="checkbox" className="mt-0.5" checked={liveConfirmed} onChange={(e) => setLiveConfirmed(e.target.checked)} />
+        <label htmlFor="liveConfirmed" className="mt-3 flex items-start gap-2 text-base">
+          <input id="liveConfirmed" name="liveConfirmed" type="checkbox" className="mt-1" checked={liveConfirmed} onChange={(e) => setLiveConfirmed(e.target.checked)} />
           I understand this will place real orders with real funds.
         </label>
-        <button
-          type="button"
-          disabled={busy || !liveConfirmed}
-          onClick={() => runAction("live")}
-          className="mt-4 rounded-full bg-red-600 px-5 py-2 text-sm font-medium text-white transition-colors hover:bg-red-500 disabled:opacity-50"
-        >
+        <Button type="button" variant="danger" disabled={busy || !liveConfirmed} onClick={() => runAction("live")} className="mt-4">
           {actionState.kind === "busy" && actionState.action === "live" ? "Starting…" : "Start live session"}
-        </button>
-      </div>
+        </Button>
+      </Card>
 
       {actionState.kind === "error" && (
-        <div className="rounded-md border border-red-300 bg-red-50 p-3 text-sm text-red-700 dark:border-red-900/50 dark:bg-red-950/30 dark:text-red-400">
-          {actionState.message}
-        </div>
+        <div className="rounded-lg border border-red-900/50 bg-red-950/30 p-4 text-base text-red-400">{actionState.message}</div>
       )}
     </div>
   );

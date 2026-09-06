@@ -51,7 +51,7 @@ export function EquityChart({ data }: { data: EquitySample[] }) {
   }, [data]);
 
   if (!plot) {
-    return <p className="text-sm text-zinc-500 dark:text-zinc-400">No equity data.</p>;
+    return <p className="text-base text-muted">No equity data.</p>;
   }
 
   function moveHoverToClientX(clientX: number) {
@@ -100,46 +100,46 @@ export function EquityChart({ data }: { data: EquitySample[] }) {
         onPointerLeave={() => setHoverIndex(null)}
         onKeyDown={handleKeyDown}
       >
-        <g className="text-zinc-400 dark:text-zinc-600">
+        <g className="text-muted">
           {plot.yTicks.map((t) => {
             const y = PADDING.top + plot.innerH - ((t - plot.yTicks[0]) / (plot.yTicks[plot.yTicks.length - 1] - plot.yTicks[0] || 1)) * plot.innerH;
             return (
               <g key={t}>
                 <line x1={PADDING.left} x2={WIDTH - PADDING.right} y1={y} y2={y} stroke="currentColor" strokeOpacity={0.25} strokeWidth={1} />
-                <text x={PADDING.left - 8} y={y} textAnchor="end" dominantBaseline="middle" className="fill-zinc-500 dark:fill-zinc-400" fontSize={11}>
+                <text x={PADDING.left - 8} y={y} textAnchor="end" dominantBaseline="middle" className="fill-muted" fontSize={12}>
                   {formatUsd(t, plot.yTickDecimals)}
                 </text>
               </g>
             );
           })}
           {plot.xTickIndices.map((i) => (
-            <text key={i} x={plot.points[i].x} y={HEIGHT - PADDING.bottom + 18} textAnchor="middle" className="fill-zinc-500 dark:fill-zinc-400" fontSize={11}>
+            <text key={i} x={plot.points[i].x} y={HEIGHT - PADDING.bottom + 18} textAnchor="middle" className="fill-muted" fontSize={12}>
               {formatDateShort(plot.points[i].sample.timestamp)}
             </text>
           ))}
         </g>
 
-        <g className="text-blue-600 dark:text-blue-400">
-          <path d={plot.areaPath} fill="currentColor" fillOpacity={0.1} stroke="none" />
+        <g className="text-accent">
+          <path d={plot.areaPath} fill="currentColor" fillOpacity={0.12} stroke="none" />
           <path d={plot.linePath} fill="none" stroke="currentColor" strokeWidth={2} strokeLinejoin="round" strokeLinecap="round" />
           <circle cx={last.x} cy={last.y} r={4} fill="currentColor" stroke="var(--background)" strokeWidth={2} />
         </g>
 
         {hover && (
           <g>
-            <line x1={hover.x} x2={hover.x} y1={PADDING.top} y2={PADDING.top + plot.innerH} className="text-zinc-400 dark:text-zinc-600" stroke="currentColor" strokeOpacity={0.5} strokeWidth={1} />
-            <circle cx={hover.x} cy={hover.y} r={4} className="text-blue-600 dark:text-blue-400" fill="currentColor" stroke="var(--background)" strokeWidth={2} />
+            <line x1={hover.x} x2={hover.x} y1={PADDING.top} y2={PADDING.top + plot.innerH} className="text-muted" stroke="currentColor" strokeOpacity={0.5} strokeWidth={1} />
+            <circle cx={hover.x} cy={hover.y} r={4} className="text-accent" fill="currentColor" stroke="var(--background)" strokeWidth={2} />
           </g>
         )}
       </svg>
 
       {hover && (
         <div
-          className="pointer-events-none absolute top-2 z-10 rounded-md border border-black/10 bg-white px-2.5 py-1.5 text-xs shadow-sm dark:border-white/10 dark:bg-zinc-900"
+          className="pointer-events-none absolute top-2 z-10 rounded-md border border-border bg-surface px-3 py-2 text-sm shadow-sm"
           style={{ left: `${(hover.x / WIDTH) * 100}%`, transform: hover.x > WIDTH * 0.7 ? "translateX(-100%)" : "translateX(4px)" }}
         >
           <div className="font-medium tabular-nums">{formatUsd(hover.sample.equity)}</div>
-          <div className="text-zinc-500 dark:text-zinc-400">{formatDateTime(hover.sample.timestamp)}</div>
+          <div className="text-muted">{formatDateTime(hover.sample.timestamp)}</div>
         </div>
       )}
     </div>

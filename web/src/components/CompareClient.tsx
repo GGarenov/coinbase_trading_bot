@@ -18,13 +18,13 @@ export function CompareClient({ initial }: { initial: SessionCompareRow[] }) {
   return (
     <div className="space-y-8">
       <section>
-        <h2 className="text-lg font-medium">Equity curves</h2>
-        <div className="mt-3 rounded-lg border border-black/10 p-4 dark:border-white/10">
+        <h2 className="text-xl font-medium">Equity curves</h2>
+        <div className="mt-3 rounded-xl border border-border bg-surface p-4">
           <EquityOverlayChart rows={rows} />
         </div>
       </section>
       <section>
-        <h2 className="text-lg font-medium">Sessions</h2>
+        <h2 className="text-xl font-medium">Sessions</h2>
         <div className="mt-3">
           <CompareTable rows={rows} />
         </div>

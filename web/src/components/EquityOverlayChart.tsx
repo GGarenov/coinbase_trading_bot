@@ -14,9 +14,13 @@ const PADDING = { top: 16, right: 16, bottom: 28, left: 64 };
  * used verbatim — this is the DEFAULT, already-validated order (CVD-safe
  * adjacent pairs in both light and dark), not a custom brand substitution,
  * so no re-run of the validator script is needed here (that's only required
- * when swapping in different hues). Capped at 8 slots per the skill's own
- * "a 9th series is never a generated hue" rule — an overlay with more
- * sessions than that folds the rest into "Other" below.
+ * when swapping in different hues). The app went dark-only in the warm-theme
+ * redesign (see `docs/improving_design.md`), so only the `dark` half of each
+ * pair is ever read now — `light` is kept alongside it rather than deleted,
+ * since it's still the source-of-truth pairing from the skill's reference.
+ * Capped at 8 slots per the skill's own "a 9th series is never a generated
+ * hue" rule — an overlay with more sessions than that folds the rest into
+ * "Other" below.
  */
 const CATEGORICAL_PALETTE: Array<{ light: string; dark: string }> = [
   { light: "#2a78d6", dark: "#3987e5" }, // blue
@@ -98,7 +102,7 @@ export function EquityOverlayChart({ rows }: { rows: SessionCompareRow[] }) {
   }, [series]);
 
   if (!plot) {
-    return <p className="text-sm text-zinc-500 dark:text-zinc-400">No equity data to compare yet.</p>;
+    return <p className="text-base text-muted">No equity data to compare yet.</p>;
   }
 
   function moveHoverToClientX(clientX: number) {
@@ -116,12 +120,8 @@ export function EquityOverlayChart({ rows }: { rows: SessionCompareRow[] }) {
   return (
     <div>
       <style>{`
-        .equity-overlay { color-scheme: light; }
-        ${CATEGORICAL_PALETTE.map((c, i) => `.equity-overlay { --eo-series-${i}: ${c.light}; }`).join("\n")}
-        @media (prefers-color-scheme: dark) {
-          .equity-overlay { color-scheme: dark; }
-          ${CATEGORICAL_PALETTE.map((c, i) => `.equity-overlay { --eo-series-${i}: ${c.dark}; }`).join("\n")}
-        }
+        .equity-overlay { color-scheme: dark; }
+        ${CATEGORICAL_PALETTE.map((c, i) => `.equity-overlay { --eo-series-${i}: ${c.dark}; }`).join("\n")}
       `}</style>
       <div className="equity-overlay relative">
         <svg
@@ -134,20 +134,20 @@ export function EquityOverlayChart({ rows }: { rows: SessionCompareRow[] }) {
           onPointerMove={(e) => moveHoverToClientX(e.clientX)}
           onPointerLeave={() => setHoverT(null)}
         >
-          <g className="text-zinc-400 dark:text-zinc-600">
+          <g className="text-muted">
             {plot.yTicks.map((t) => {
               const y = plot.yScale(t);
               return (
                 <g key={t}>
                   <line x1={PADDING.left} x2={WIDTH - PADDING.right} y1={y} y2={y} stroke="currentColor" strokeOpacity={0.25} strokeWidth={1} />
-                  <text x={PADDING.left - 8} y={y} textAnchor="end" dominantBaseline="middle" className="fill-zinc-500 dark:fill-zinc-400" fontSize={11}>
+                  <text x={PADDING.left - 8} y={y} textAnchor="end" dominantBaseline="middle" className="fill-muted" fontSize={12}>
                     {formatUsd(t, plot.yTickDecimals)}
                   </text>
                 </g>
               );
             })}
             {plot.xTicks.map((t, i) => (
-              <text key={i} x={plot.xScale(t)} y={HEIGHT - PADDING.bottom + 18} textAnchor="middle" className="fill-zinc-500 dark:fill-zinc-400" fontSize={11}>
+              <text key={i} x={plot.xScale(t)} y={HEIGHT - PADDING.bottom + 18} textAnchor="middle" className="fill-muted" fontSize={12}>
                 {formatDateShort(t)}
               </text>
             ))}
@@ -160,12 +160,12 @@ export function EquityOverlayChart({ rows }: { rows: SessionCompareRow[] }) {
             </g>
           ))}
 
-          {hoverX !== null && <line x1={hoverX} x2={hoverX} y1={PADDING.top} y2={PADDING.top + plot.innerH} className="text-zinc-400 dark:text-zinc-600" stroke="currentColor" strokeOpacity={0.5} strokeWidth={1} />}
+          {hoverX !== null && <line x1={hoverX} x2={hoverX} y1={PADDING.top} y2={PADDING.top + plot.innerH} className="text-muted" stroke="currentColor" strokeOpacity={0.5} strokeWidth={1} />}
         </svg>
 
         {hoverRows && (
           <div
-            className="pointer-events-none absolute top-2 z-10 max-w-60 rounded-md border border-black/10 bg-white p-2.5 text-xs shadow-sm dark:border-white/10 dark:bg-zinc-900"
+            className="pointer-events-none absolute top-2 z-10 max-w-60 rounded-md border border-border bg-surface p-3 text-sm shadow-sm"
             style={{ left: `${((hoverX ?? 0) / WIDTH) * 100}%`, transform: (hoverX ?? 0) > WIDTH * 0.6 ? "translateX(-100%)" : "translateX(4px)" }}
           >
             {hoverRows.map(
@@ -173,29 +173,29 @@ export function EquityOverlayChart({ rows }: { rows: SessionCompareRow[] }) {
                 l.sample && (
                   <div key={l.row.sessionId} className="flex items-center gap-1.5 py-0.5">
                     <span className="h-0.5 w-3 shrink-0" style={{ backgroundColor: `var(--eo-series-${l.colorIndex})` }} />
-                    <span className="truncate text-zinc-500 dark:text-zinc-400">#{l.row.sessionId}</span>
+                    <span className="truncate text-muted">#{l.row.sessionId}</span>
                     <span className="ml-auto font-medium tabular-nums">{formatUsd(l.sample.equity)}</span>
                   </div>
                 ),
             )}
-            <div className="mt-1 border-t border-black/10 pt-1 text-zinc-400 dark:border-white/10 dark:text-zinc-500">{formatDateTime(hoverT)}</div>
+            <div className="mt-1 border-t border-border pt-1 text-muted">{formatDateTime(hoverT)}</div>
           </div>
         )}
       </div>
 
       {series.length > 1 && (
-        <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-xs">
+        <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-sm">
           {plot.lines.map((l) => (
             <div key={l.row.sessionId} className="flex items-center gap-1.5">
               <span className="h-0.5 w-4 shrink-0" style={{ backgroundColor: `var(--eo-series-${l.colorIndex})` }} />
-              <span className="text-zinc-600 dark:text-zinc-400">
+              <span className="text-muted">
                 #{l.row.sessionId} {l.row.strategy.name}
               </span>
             </div>
           ))}
         </div>
       )}
-      {overflow > 0 && <p className="mt-2 text-xs text-zinc-500 dark:text-zinc-400">+{overflow} more session(s) not shown (chart is capped at {CATEGORICAL_PALETTE.length} series — see the table above for all of them).</p>}
+      {overflow > 0 && <p className="mt-2 text-sm text-muted">+{overflow} more session(s) not shown (chart is capped at {CATEGORICAL_PALETTE.length} series — see the table above for all of them).</p>}
     </div>
   );
 }

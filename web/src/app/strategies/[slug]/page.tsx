@@ -22,9 +22,9 @@ export default async function StrategyConfigPage({ params }: { params: Promise<{
 
   return (
     <div className="mx-auto max-w-3xl px-6 py-10">
-      <span className="inline-block rounded-full bg-zinc-100 px-2 py-0.5 text-xs text-zinc-600 dark:bg-zinc-800 dark:text-zinc-300">{strategy.riskLevel}</span>
-      <h1 className="mt-2 text-2xl font-semibold tracking-tight">{strategy.name}</h1>
-      <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">{strategy.description}</p>
+      <span className="inline-block rounded-full bg-surface-hover px-2.5 py-0.5 text-sm text-muted">{strategy.riskLevel}</span>
+      <h1 className="mt-2 text-3xl font-semibold tracking-tight">{strategy.name}</h1>
+      <p className="mt-1 text-base text-muted">{strategy.description}</p>
       <div className="mt-8">
         <ConfigForm strategy={strategy} />
       </div>

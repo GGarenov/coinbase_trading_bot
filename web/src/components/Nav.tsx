@@ -8,12 +8,12 @@ import Link from "next/link";
  */
 export function Nav() {
   return (
-    <header className="border-b border-black/10 dark:border-white/10">
+    <header className="border-b border-border">
       <div className="mx-auto flex max-w-5xl items-center justify-between px-6 py-4">
-        <Link href="/" className="text-lg font-semibold tracking-tight">
+        <Link href="/" className="text-xl font-semibold tracking-tight">
           Coinbase Trading Bot
         </Link>
-        <Link href="/compare" className="text-sm text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-50">
+        <Link href="/compare" className="text-base text-muted hover:text-foreground">
           Compare
         </Link>
       </div>

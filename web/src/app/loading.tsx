@@ -1,5 +1,5 @@
 function SkeletonBlock({ className = "" }: { className?: string }) {
-  return <div className={`animate-pulse rounded-lg bg-black/5 dark:bg-white/10 ${className}`} />;
+  return <div className={`animate-pulse rounded-lg bg-surface ${className}`} />;
 }
 
 /** Instant loading UI (Phase 3.4) — shown via React Suspense while `page.tsx`'s server-side fetch is in flight. */

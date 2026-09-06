@@ -5,15 +5,13 @@ export function StrategyCard({ strategy }: { strategy: StrategyCatalogEntry }) {
   return (
     <Link
       href={`/strategies/${strategy.slug}`}
-      className="block rounded-lg border border-black/10 p-5 transition-colors hover:border-black/20 dark:border-white/10 dark:hover:border-white/20"
+      className="block rounded-xl border border-border bg-surface p-5 transition-colors hover:border-accent/50 hover:bg-surface-hover"
     >
       <div className="flex items-center justify-between gap-2">
-        <h3 className="font-medium">{strategy.name}</h3>
-        <span className="shrink-0 rounded-full bg-zinc-100 px-2 py-0.5 text-xs text-zinc-600 dark:bg-zinc-800 dark:text-zinc-300">
-          {strategy.riskLevel}
-        </span>
+        <h3 className="text-lg font-medium">{strategy.name}</h3>
+        <span className="shrink-0 rounded-full bg-surface-hover px-2.5 py-0.5 text-sm text-muted">{strategy.riskLevel}</span>
       </div>
-      <p className="mt-2 text-sm text-zinc-500 dark:text-zinc-400">{strategy.description}</p>
+      <p className="mt-2 text-base text-muted">{strategy.description}</p>
     </Link>
   );
 }

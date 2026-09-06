@@ -54,13 +54,13 @@ export function CompareTable({ rows }: { rows: SessionCompareRow[] }) {
   }
 
   return (
-    <div className="overflow-x-auto rounded-lg border border-black/10 dark:border-white/10">
-      <table className="w-full min-w-[720px] text-left text-sm">
-        <thead className="border-b border-black/10 text-xs uppercase tracking-wide text-zinc-500 dark:border-white/10 dark:text-zinc-400">
+    <div className="overflow-x-auto rounded-xl border border-border">
+      <table className="w-full min-w-[720px] text-left text-base">
+        <thead className="border-b border-border text-sm uppercase tracking-wide text-muted">
           <tr>
             {COLUMNS.map((col) => (
               <th key={col.key} scope="col" className={`px-4 py-3 font-medium ${col.align === "right" ? "text-right" : ""}`}>
-                <button type="button" onClick={() => toggleSort(col.key)} className="inline-flex items-center gap-1 hover:text-zinc-900 dark:hover:text-zinc-50">
+                <button type="button" onClick={() => toggleSort(col.key)} className="inline-flex items-center gap-1 hover:text-foreground">
                   {col.label}
                   {sort.key === col.key && <span aria-hidden>{sort.direction === 1 ? "▲" : "▼"}</span>}
                 </button>
@@ -71,20 +71,20 @@ export function CompareTable({ rows }: { rows: SessionCompareRow[] }) {
             </th>
           </tr>
         </thead>
-        <tbody className="divide-y divide-black/10 dark:divide-white/10">
+        <tbody className="divide-y divide-border">
           {sorted.map((row) => (
             <tr key={row.sessionId}>
               <td className="px-4 py-3">
                 <Link href={`/sessions/${row.sessionId}`} className="font-medium hover:underline">
                   #{row.sessionId} · {row.strategy.name}
                 </Link>
-                <div className="text-xs text-zinc-500 dark:text-zinc-400">
+                <div className="text-sm text-muted">
                   {row.mode} · {row.productId}
                 </div>
               </td>
-              <td className={`px-4 py-3 text-right tabular-nums font-medium ${row.pnl >= 0 ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"}`}>{formatUsd(row.pnl)}</td>
+              <td className={`px-4 py-3 text-right tabular-nums font-medium ${row.pnl >= 0 ? "text-green-400" : "text-red-400"}`}>{formatUsd(row.pnl)}</td>
               <td className="px-4 py-3 text-right tabular-nums">{row.winRatePct === null ? "—" : formatPercent(row.winRatePct, 1, false)}</td>
-              <td className="px-4 py-3 text-right tabular-nums text-zinc-500 dark:text-zinc-400">{formatUsd(row.feesPaid)}</td>
+              <td className="px-4 py-3 text-right tabular-nums text-muted">{formatUsd(row.feesPaid)}</td>
               <td className="px-4 py-3 text-right tabular-nums">{formatPercent(row.maxDrawdownPct, 1, false)}</td>
               <td className="px-4 py-3 text-right tabular-nums">{row.completedCycles}</td>
               <td className="px-4 py-3">

@@ -19,8 +19,8 @@ export default async function ComparePage() {
 
   return (
     <div className="mx-auto max-w-5xl px-6 py-10">
-      <h1 className="text-2xl font-semibold tracking-tight">Compare sessions</h1>
-      <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">P&amp;L, win rate, fees, drawdown, and completed cycles across every paper and live session.</p>
+      <h1 className="text-3xl font-semibold tracking-tight">Compare sessions</h1>
+      <p className="mt-1 text-base text-muted">P&amp;L, win rate, fees, drawdown, and completed cycles across every paper and live session.</p>
       <div className="mt-8">
         <CompareClient initial={rows} />
       </div>

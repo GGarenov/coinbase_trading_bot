@@ -1,10 +1,7 @@
 import type { JsonSchemaNode, PathSegment } from "@/lib/jsonSchemaForm";
 import { defaultForSchema } from "@/lib/jsonSchemaForm";
 import { titleCase } from "@/lib/format";
-
-const inputClass =
-  "w-full rounded-md border border-black/10 bg-transparent px-3 py-1.5 text-sm outline-none focus:border-black/30 dark:border-white/15 dark:focus:border-white/40";
-const labelClass = "block text-sm font-medium text-zinc-700 dark:text-zinc-300";
+import { inputClass, labelClass } from "./Input";
 
 /** A stable, unique id/name for a field from its path (e.g. ["levels", 0, "price"] -> "params-levels-0-price") — every input needs one so autofill/a11y tooling can address it, and so two array items' same-named fields (e.g. two levels' "price") don't collide. */
 function fieldId(path: PathSegment[]): string {
@@ -25,8 +22,8 @@ export interface SchemaFieldProps {
 export function SchemaField({ schema, value, path, label, onSet, onAddItem, onRemoveItem }: SchemaFieldProps) {
   if (schema.type === "object") {
     return (
-      <fieldset className="space-y-3 rounded-md border border-black/10 p-3 dark:border-white/10">
-        <legend className="px-1 text-sm font-medium">{titleCase(label)}</legend>
+      <fieldset className="space-y-3 rounded-lg border border-border p-4">
+        <legend className="px-1 text-base font-medium">{titleCase(label)}</legend>
         {Object.entries(schema.properties ?? {}).map(([key, sub]) => (
           <SchemaField
             key={key}
@@ -67,7 +64,7 @@ export function SchemaField({ schema, value, path, label, onSet, onAddItem, onRe
               <button
                 type="button"
                 onClick={() => onRemoveItem(path, i)}
-                className="mt-1 shrink-0 rounded-md border border-black/10 px-2 py-1 text-xs text-zinc-500 hover:border-red-300 hover:text-red-600 dark:border-white/10 dark:text-zinc-400 dark:hover:text-red-400"
+                className="mt-1 shrink-0 rounded-md border border-border px-2.5 py-1.5 text-sm text-muted hover:border-red-800 hover:text-red-400"
               >
                 Remove
               </button>
@@ -77,7 +74,7 @@ export function SchemaField({ schema, value, path, label, onSet, onAddItem, onRe
         <button
           type="button"
           onClick={() => schema.items && onAddItem(path, defaultForSchema(schema.items))}
-          className="mt-2 rounded-md border border-dashed border-black/20 px-3 py-1 text-xs text-zinc-600 hover:border-black/40 dark:border-white/20 dark:text-zinc-300 dark:hover:border-white/40"
+          className="mt-2 rounded-md border border-dashed border-border px-3 py-1.5 text-sm text-muted hover:border-accent/60 hover:text-foreground"
         >
           + Add {titleCase(label).replace(/s$/, "")}
         </button>
@@ -89,7 +86,7 @@ export function SchemaField({ schema, value, path, label, onSet, onAddItem, onRe
 
   if (schema.type === "boolean") {
     return (
-      <label htmlFor={id} className="flex items-center gap-2 text-sm">
+      <label htmlFor={id} className="flex items-center gap-2 text-base">
         <input id={id} name={id} type="checkbox" checked={Boolean(value)} onChange={(e) => onSet(path, e.target.checked)} />
         {titleCase(label)}
       </label>
