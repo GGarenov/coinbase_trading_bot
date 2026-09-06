@@ -1,12 +1,17 @@
-import type { FeeSchedule } from "@coinbase-trading-bot/shared";
+import type { FeeSchedule, Granularity } from "@coinbase-trading-bot/shared";
 import { prisma } from "@coinbase-trading-bot/shared/server";
 import { Router } from "express";
 import type { Router as ExpressRouter } from "express";
 import { z } from "zod";
 import { runBacktest } from "../services/backtestRunner";
+import { getCachedCandles } from "../services/priceCandleCache";
+import { computePriceSummary } from "../services/priceSummary";
 import { createSession } from "../services/sessionFactory";
 
 export const backtestsRouter: ExpressRouter = Router();
+
+/** Matches `BACKTEST_GRANULARITY` in `backtestRunner.ts` — the candles a backtest was actually run on. */
+const CANDLE_GRANULARITY: Granularity = "ONE_HOUR";
 
 const feeScheduleSchema = z.object({ makerRate: z.number().positive(), takerRate: z.number().positive() }) satisfies z.ZodType<FeeSchedule>;
 
@@ -97,4 +102,45 @@ backtestsRouter.get("/:id", async (req, res) => {
     // once status is COMPLETED; null/absent while still RUNNING or if it FAILED.
     report: session.resultsSummary,
   });
+});
+
+/**
+ * GET /backtests/:id/candles — the price context behind a completed
+ * backtest: the exact OHLC candles the run was fed, plus a min/max/avg
+ * summary of them.
+ *
+ * Reads through `getCachedCandles`, which the run itself already populated
+ * for this product/window, so this is normally a pure cache read and never
+ * a fresh Coinbase call. Note it requests the SESSION's window only — the
+ * runner additionally pre-fetches indicator warm-up candles before
+ * `startDate`, and those are deliberately excluded here: they're strategy
+ * plumbing, not part of the period being reported on.
+ */
+backtestsRouter.get("/:id/candles", async (req, res) => {
+  const id = Number(req.params.id);
+  if (!Number.isInteger(id)) {
+    res.status(400).json({ error: "id must be an integer" });
+    return;
+  }
+
+  const session = await prisma.session.findUnique({ where: { id } });
+  if (!session || session.mode !== "BACKTEST") {
+    res.status(404).json({ error: `No backtest session with id ${id}` });
+    return;
+  }
+  if (session.status !== "COMPLETED") {
+    res.status(409).json({ error: `Backtest ${id} is not completed (status: ${session.status})` });
+    return;
+  }
+  if (!session.startDate || !session.endDate) {
+    res.status(409).json({ error: `Backtest ${id} is missing startDate/endDate` });
+    return;
+  }
+
+  try {
+    const candles = await getCachedCandles(session.productId, CANDLE_GRANULARITY, session.startDate.getTime(), session.endDate.getTime());
+    res.json({ granularity: CANDLE_GRANULARITY, candles, priceSummary: computePriceSummary(candles) });
+  } catch (error) {
+    res.status(500).json({ error: error instanceof Error ? error.message : String(error) });
+  }
 });
