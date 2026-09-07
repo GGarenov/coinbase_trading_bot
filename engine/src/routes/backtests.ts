@@ -94,6 +94,9 @@ backtestsRouter.get("/:id", async (req, res) => {
     sessionId: session.id,
     status: session.status,
     strategy: { slug: session.strategyConfig.strategy.slug, name: session.strategyConfig.strategy.name },
+    // The exact params the run used. Exposed so the dashboard can overlay configured price
+    // levels on the price chart (`GET /:id/candles`) without a second round trip to /configs.
+    strategyConfig: { id: session.strategyConfig.id, name: session.strategyConfig.name, params: session.strategyConfig.params },
     productId: session.productId,
     startDate: session.startDate,
     endDate: session.endDate,

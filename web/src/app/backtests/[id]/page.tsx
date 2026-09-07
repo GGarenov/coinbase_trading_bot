@@ -1,10 +1,13 @@
 import { notFound } from "next/navigation";
 import { EmptyState } from "@/components/EmptyState";
 import { EquityChart } from "@/components/EquityChart";
+import { PriceChart } from "@/components/PriceChart";
 import { StatTile } from "@/components/StatTile";
 import { TradeLogTable } from "@/components/TradeLogTable";
-import { ApiError, getBacktest } from "@/lib/api";
+import type { BacktestCandles } from "@/lib/api";
+import { ApiError, getBacktest, getBacktestCandles } from "@/lib/api";
 import { formatDateTime, formatNumber, formatPercent, formatUsd } from "@/lib/format";
+import { extractPriceLevels } from "@/lib/priceLevels";
 
 // See page.tsx (home)'s doc comment for why this is required on every page that fetches live
 // engine data — without it, `next build` tries to prerender this at build time.
@@ -24,6 +27,23 @@ export default async function BacktestReportPage({ params }: { params: Promise<{
   }
 
   const { report } = backtest;
+
+  // Price context (the candles the run was fed) is a second, independent request —
+  // only valid once the backtest is COMPLETED, and deliberately non-fatal: a report
+  // that renders is worth more than a whole page lost because the candle cache
+  // couldn't be read. A failure here degrades to the "no data" note below instead.
+  let priceContext: BacktestCandles | null = null;
+  if (backtest.status === "COMPLETED") {
+    try {
+      priceContext = await getBacktestCandles(backtestId);
+    } catch (err) {
+      if (!(err instanceof ApiError)) throw err;
+    }
+  }
+  // Structural check, not a strategy-slug check — see `lib/priceLevels.ts`. Empty for
+  // any strategy without configured levels (DCA, MA crossover, RSI), and the chart
+  // then renders with no overlay lines.
+  const priceLevels = extractPriceLevels(backtest.strategyConfig.params);
 
   return (
     <div className="mx-auto max-w-5xl space-y-8 px-6 py-10">
@@ -65,6 +85,33 @@ export default async function BacktestReportPage({ params }: { params: Promise<{
               <StatTile label="Avg. trade duration" value={report.performance.averageTradeDurationDays === null ? "—" : `${formatNumber(report.performance.averageTradeDurationDays, 1)} days`} />
               <StatTile label="Missed fills" value={formatNumber(report.performance.missedFillCount, 0)} tone={report.performance.missedFillCount > 0 ? "negative" : "neutral"} />
             </div>
+          </section>
+
+          <section>
+            <h2 className="text-xl font-medium">Market price</h2>
+            <p className="mt-1 text-base text-muted">
+              What {backtest.productId} actually did over this window — the context the numbers above were earned in.
+              {priceLevels.length > 0 && " Dashed lines are this config's own levels."}
+            </p>
+            {priceContext === null || priceContext.candles.length === 0 ? (
+              <div className="mt-3">
+                <EmptyState message="No cached candles for this period — the engine's candle cache has nothing for this product and date range." />
+              </div>
+            ) : (
+              <>
+                {priceContext.priceSummary && (
+                  <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-4">
+                    <StatTile label="Lowest close" value={formatUsd(priceContext.priceSummary.minClose)} />
+                    <StatTile label="Highest close" value={formatUsd(priceContext.priceSummary.maxClose)} />
+                    <StatTile label="Average close" value={formatUsd(priceContext.priceSummary.avgClose)} />
+                    <StatTile label="Intra-candle range" value={`${formatUsd(priceContext.priceSummary.minLow)} – ${formatUsd(priceContext.priceSummary.maxHigh)}`} />
+                  </div>
+                )}
+                <div className="mt-3 rounded-xl border border-border bg-surface p-4">
+                  <PriceChart candles={priceContext.candles} levels={priceLevels} />
+                </div>
+              </>
+            )}
           </section>
 
           <section>

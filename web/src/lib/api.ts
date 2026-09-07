@@ -23,7 +23,7 @@
  * cannot reach Prisma through this import. See `packages/shared/src/server.ts`'s
  * own doc comment for the full reasoning.
  */
-import type { FeeSchedule, Liquidity, OrderStatus, OrderSide, OrderTypeHint, SessionMode, SessionStatus } from "@coinbase-trading-bot/shared";
+import type { FeeSchedule, Granularity, Liquidity, OrderStatus, OrderSide, OrderTypeHint, SessionMode, SessionStatus } from "@coinbase-trading-bot/shared";
 
 // ---------------------------------------------------------------------------
 // Base fetch wrapper (Phase 2.1)
@@ -112,7 +112,7 @@ function post<T>(path: string, body?: unknown): Promise<T> {
  * name for anything reading an `Order` row's `type` field.
  */
 export type OrderType = OrderTypeHint;
-export type { FeeSchedule, Liquidity, OrderStatus, OrderSide, SessionMode, SessionStatus };
+export type { FeeSchedule, Granularity, Liquidity, OrderStatus, OrderSide, SessionMode, SessionStatus };
 
 export interface StrategyRef {
   slug: string;
@@ -456,6 +456,13 @@ export interface BacktestSummary {
   sessionId: number;
   status: SessionStatus;
   strategy: StrategyRef;
+  /**
+   * The exact `StrategyConfig` the run used, `params` included (opaque —
+   * shape is strategy-specific). Present so the report page can overlay the
+   * configured price levels on the price chart without a second request;
+   * read it structurally (see `lib/priceLevels.ts`), never by strategy slug.
+   */
+  strategyConfig: { id: number; name: string; params: unknown };
   productId: string;
   startDate: string | null;
   endDate: string | null;
@@ -479,4 +486,53 @@ export interface KillSwitchState {
 /** Read-only — no toggle exists yet (nothing has asked for one; see `routes/killSwitch.ts`'s own doc comment). */
 export function getKillSwitch(): Promise<KillSwitchState> {
   return get<KillSwitchState>("/kill-switch");
+}
+
+// ---------------------------------------------------------------------------
+// Backtest price context — GET /backtests/:id/candles
+// ---------------------------------------------------------------------------
+
+/** One OHLCV bar, mirroring `packages/shared`'s `Candle` — `openTime` is ms epoch, like the report's other timestamps. */
+export interface Candle {
+  openTime: number;
+  open: number;
+  high: number;
+  low: number;
+  close: number;
+  volume: number;
+}
+
+/**
+ * Aggregate price context for the backtest's window. Close- and high/low-based
+ * extremes are both reported on purpose: the engine's fill logic only ever
+ * reads a candle's `close`, so `minClose`/`maxClose` are the prices the
+ * strategy could act on, while `minLow`/`maxHigh` are what the market
+ * actually touched intra-candle.
+ */
+export interface PriceSummary {
+  minClose: number;
+  maxClose: number;
+  avgClose: number;
+  minLow: number;
+  maxHigh: number;
+}
+
+export interface BacktestCandles {
+  granularity: Granularity;
+  candles: Candle[];
+  /** null when the window has no cached candles at all (never zero-valued extremes). */
+  priceSummary: PriceSummary | null;
+}
+
+/**
+ * The OHLC candles the backtest was actually run on, plus their summary —
+ * what the MARKET did over the period, as opposed to what the strategy did
+ * with it (that's `getBacktest`'s `report`). Reads the engine's candle cache
+ * the run already populated, so it never triggers a fresh Coinbase fetch.
+ *
+ * Rejects with `ApiError` `409` for a backtest that isn't `COMPLETED` — call
+ * it only after checking `getBacktest(id).status`.
+ */
+export function getBacktestCandles(id: number): Promise<BacktestCandles> {
+  return get<BacktestCandles>(`/backtests/${id}/candles`);
 }
