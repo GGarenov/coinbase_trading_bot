@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import { DownloadReportButton } from "@/components/DownloadReportButton";
 import { EmptyState } from "@/components/EmptyState";
 import { EquityChart } from "@/components/EquityChart";
 import { PriceChart } from "@/components/PriceChart";
@@ -47,13 +48,18 @@ export default async function BacktestReportPage({ params }: { params: Promise<{
 
   return (
     <div className="mx-auto max-w-5xl space-y-8 px-6 py-10">
-      <div>
-        <p className="text-base text-muted">
-          Backtest #{backtest.sessionId} · {backtest.strategy.name} · {backtest.productId}
-        </p>
-        <h1 className="mt-1 text-3xl font-semibold tracking-tight">
-          {formatDateTime(backtest.startDate)} – {formatDateTime(backtest.endDate)}
-        </h1>
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <p className="text-base text-muted">
+            Backtest #{backtest.sessionId} · {backtest.strategy.name} · {backtest.productId}
+          </p>
+          <h1 className="mt-1 text-3xl font-semibold tracking-tight">
+            {formatDateTime(backtest.startDate)} – {formatDateTime(backtest.endDate)}
+          </h1>
+        </div>
+        {/* Acts on the whole report, so it belongs in the header rather than in any one
+            section below. Absent entirely without a report — there'd be nothing to export. */}
+        {backtest.status === "COMPLETED" && report && <DownloadReportButton backtest={backtest} report={report} priceContext={priceContext} />}
       </div>
 
       {backtest.status !== "COMPLETED" || !report ? (

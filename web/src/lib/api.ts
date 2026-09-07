@@ -439,6 +439,13 @@ export interface CreateBacktestInput {
   feeScheduleOverride?: FeeSchedule;
 }
 
+/**
+ * `POST /backtests`'s response — deliberately NOT given `BacktestSummary`'s
+ * `strategyConfig`/`feeSchedule`/balance fields: the POST handler doesn't
+ * return them, and these types mirror the routes by hand (see this file's
+ * header), so inventing fields the engine never sends would be worse than
+ * the extra `getBacktest(id)` call a caller can make instead.
+ */
 export interface BacktestResult {
   sessionId: number;
   status: SessionStatus;
@@ -467,6 +474,15 @@ export interface BacktestSummary {
   startDate: string | null;
   endDate: string | null;
   error: string | null;
+  /**
+   * Reproducibility fields, so an exported report can be reviewed away from
+   * this app (see `DownloadReportButton.tsx`). `feeSchedule` is the snapshot
+   * taken when the session was created — the rates this run actually charged,
+   * not whatever the current default is.
+   */
+  feeSchedule: FeeSchedule;
+  initialQuoteBalance: number;
+  initialBaseBalance: number;
   /** Null if the backtest hasn't completed (shouldn't normally be observed, since `createBacktest` only returns after completion) or failed before producing a report. */
   report: BacktestReport | null;
 }

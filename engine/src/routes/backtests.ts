@@ -101,6 +101,19 @@ backtestsRouter.get("/:id", async (req, res) => {
     startDate: session.startDate,
     endDate: session.endDate,
     error: session.error,
+    // Reproducibility fields — everything needed to understand what was actually
+    // configured, so an exported report can stand on its own away from this app
+    // (see docs/features/download_button_in_backtesting/). Already-loaded columns
+    // on the same Session row, so no extra query.
+    //
+    // The fee schedule is returned as the STORED snapshot, never re-derived from a
+    // live default: it's the schedule this run actually charged, and a later change
+    // to the account's volume tier must not retroactively rewrite it.
+    feeSchedule: session.feeSchedule,
+    // Prisma Decimal -> number at the boundary, or these serialize as JSON strings.
+    // Same conversion `routes/sessions.ts` and `priceCandleCache.ts` already do.
+    initialQuoteBalance: Number(session.initialQuoteBalance),
+    initialBaseBalance: Number(session.initialBaseBalance),
     // The full BacktestReport shape (performance/equityCurve/trades/missedFills/curveFittingWarning)
     // once status is COMPLETED; null/absent while still RUNNING or if it FAILED.
     report: session.resultsSummary,
